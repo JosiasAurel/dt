@@ -64,7 +64,7 @@ pub fn main() !void {
                 return err;
             };
             if (!isError) {
-                std.debug.print("{}:{} +{} days \n", .{ time_s[1], time_s[2], time_s[0] });
+                std.debug.print("{}:{} and {} day(s) \n", .{ time_s[1], time_s[2], time_s[0] });
             }
         }
     }
@@ -114,6 +114,7 @@ fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: [
     }
 
     if (minutes <= -1.0) {
+        day -= 1;
         minutes = @intToFloat(f32, 60 + @floatToInt(i32, minutes));
         // std.debug.print("minutes = {}", .{@intToFloat(f32, 60 + @floatToInt(i32, minutes))});
         // minutes = @round(@intToFloat(f32, 60 + @truncate(i32, @floatToInt(i32, minutes))));
