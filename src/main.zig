@@ -12,18 +12,45 @@ pub fn main() !void {
 
     defer map.deinit();
 
-    try map.put("WAST", 1);
-    try map.put("ET", -4);
-    try map.put("PT", -7);
-    try map.put("CT", -5);
-    try map.put("AT", -4);
-    try map.put("IST", 5.5);
+    try map.put("wast", 1);
+    try map.put("et", -4);
+    try map.put("pt", -7);
+    try map.put("ct", -5);
+    try map.put("at", -4);
+    try map.put("ist", 5.5);
 
-    const sample_1 = "15:31";
+    // const sample_1 = "15:31";
     // const sample_2 = "10".*;
 
-    const time_s = switchTimezones(map, sample_1, "WAST", "AT");
-    std.debug.print("{}:{}\n", .{ time_s[0], time_s[1] });
+    // const time_s = switchTimezones(map, sample_1, "wast", "ist");
+    // std.debug.print("{}:{}\n", .{ time_s[0], time_s[1] });
+
+    var args = std.process.args();
+
+    _ = args.skip(); // skip executable name
+
+    var time = args.next();
+    var origin = args.next();
+    var target = args.next();
+
+    if (origin == null) {
+        std.debug.print("Missing origin timezone \n", .{});
+    } else if (target == null) {
+        std.debug.print("Missing target timezone \n", .{});
+    } else if (time == null) {
+        std.debug.print("Missing time value \n", .{});
+    } else {
+        var origin_exist = map.get(origin.?);
+        var target_exist = map.get(target.?);
+        if (origin_exist == null) {
+            std.debug.print("Origin timezone not known \n", .{});
+        } else if (target_exist == null) {
+            std.debug.print("Target timezone not known \n", .{});
+        } else {
+            const time_s = switchTimezones(map, time.?, origin.?, target.?);
+            std.debug.print("{}:{} \n", .{ time_s[0], time_s[1] });
+        }
+    }
 }
 
 fn split(string: []const u8, separator: u8) [3][2]u8 {
