@@ -19,11 +19,18 @@ pub fn main() !void {
     try map.put("at", -4);
     try map.put("ist", 5.5);
 
-    // const sample_1 = "15:31";
-    // const sample_2 = "10".*;
-
-    // const time_s = switchTimezones(map, sample_1, "wast", "ist");
-    // std.debug.print("{}:{}\n", .{ time_s[0], time_s[1] });
+    const help_doc =
+        \\ dt <time> <origin_tz> <target_tz>
+        \\ Example: dt 10:30 wast ist (converts from west african standard time to indian standard time)
+        \\
+        \\ Timezones:
+        \\ wast: West African Standard Time
+        \\ et: Easter Time
+        \\ pt: Pacific Time
+        \\ ct: Central Time
+        \\ at: Atlantic Time
+        \\ ist: Indian Standard Time
+    ;
 
     var args = std.process.args();
 
@@ -33,7 +40,9 @@ pub fn main() !void {
     var origin = args.next();
     var target = args.next();
 
-    if (origin == null) {
+    if (origin == null and target == null and time == null) {
+        std.debug.print(help_doc, .{});
+    } else if (origin == null) {
         std.debug.print("Missing origin timezone \n", .{});
     } else if (target == null) {
         std.debug.print("Missing target timezone \n", .{});
