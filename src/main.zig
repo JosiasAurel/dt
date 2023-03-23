@@ -93,7 +93,7 @@ fn getTimeDiff(timeDiff: f32) f32 {
     return timeDiff * 60;
 }
 
-fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: []const u8, target_tz: []const u8) ![3]u32 {
+fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: []const u8, target_tz: []const u8) ![3]i32 {
     const gmtDiff = map.get(original_tz).? * 60;
     const targetGmtDiff = map.get(target_tz).? * 60;
 
@@ -102,16 +102,25 @@ fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: [
     const gmtTime = inTime - gmtDiff;
     const targetTime = gmtTime + targetGmtDiff;
 
-    var day: u32 = 0;
+    var day: i32 = 0;
     var hours = @floor(targetTime / 60);
-    const minutes = @rem(targetTime, 60);
+    var minutes = @rem(targetTime, 60);
 
     if (hours >= 24) {
         day += 1;
         hours = hours - 24;
+    } else if (hours <= -1) {
+        hours = if (hours == -1) 0 else 24 + hours;
     }
 
-    const result = [3]u32{ day, @floatToInt(u32, hours), @floatToInt(u32, minutes) };
+    if (minutes <= -1.0) {
+        minutes = @intToFloat(f32, 60 + @floatToInt(i32, minutes));
+        // std.debug.print("minutes = {}", .{@intToFloat(f32, 60 + @floatToInt(i32, minutes))});
+        // minutes = @round(@intToFloat(f32, 60 + @truncate(i32, @floatToInt(i32, minutes))));
+        // std.debug.print("minutes = {}", .{@bitCast(i32, minutes)});
+    }
+
+    const result = [3]i32{ day, @floatToInt(i32, hours), @floatToInt(i32, minutes) };
     return result;
 }
 
