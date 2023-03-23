@@ -4,6 +4,8 @@ const c = @cImport({
     @cInclude("stdlib.h");
 });
 
+const TimeError = error{InvalidTime};
+
 var _gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
 pub fn main() !void {
@@ -56,8 +58,14 @@ pub fn main() !void {
         } else if (target_exist == null) {
             std.debug.print("Target timezone not known \n", .{});
         } else {
-            const time_s = switchTimezones(map, time.?, origin.?, target.?);
-            std.debug.print("{}:{} \n", .{ time_s[0], time_s[1] });
+            var isError = false;
+            const time_s = switchTimezones(map, time.?, origin.?, target.?) catch |err| {
+                isError = true;
+                return err;
+            };
+            if (!isError) {
+                std.debug.print("{}:{} +{} days \n", .{ time_s[1], time_s[2], time_s[0] });
+            }
         }
     }
 }
@@ -81,32 +89,29 @@ fn split(string: []const u8, separator: u8) [3][2]u8 {
     return split_arr;
 }
 
-// convert a differentiator value to correspond time difference
-// by subtracting hours by the integer part of the value
-// and subtracting the minutes by the fractional part, k, multiplied by 60 -> k*60
-fn getSubtractors(timeDiff: f32) [2]i32 {
-    var hours = @floor(timeDiff);
-    hours = if (timeDiff < 0) hours + 1 else hours;
-    const minutes = ((@ceil(timeDiff) - @floor(timeDiff)) * 0.5 * 60);
-    const result: [2]i32 = [2]i32{ @floatToInt(i32, hours), @floatToInt(i32, minutes) };
-    return result;
-}
-
 fn getTimeDiff(timeDiff: f32) f32 {
     return timeDiff * 60;
 }
 
-fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: []const u8, target_tz: []const u8) [2]u32 {
+fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: []const u8, target_tz: []const u8) ![3]u32 {
     const gmtDiff = map.get(original_tz).? * 60;
     const targetGmtDiff = map.get(target_tz).? * 60;
 
-    const gmtTime = getTime(split(time, ':')) - gmtDiff;
+    const inTime = getTime(split(time, ':')) catch |err| return err;
+
+    const gmtTime = inTime - gmtDiff;
     const targetTime = gmtTime + targetGmtDiff;
 
-    const hours = @floor(targetTime / 60);
+    var day: u32 = 0;
+    var hours = @floor(targetTime / 60);
     const minutes = @rem(targetTime, 60);
 
-    const result = [2]u32{ @floatToInt(u32, hours), @floatToInt(u32, minutes) };
+    if (hours >= 24) {
+        day += 1;
+        hours = hours - 24;
+    }
+
+    const result = [3]u32{ day, @floatToInt(u32, hours), @floatToInt(u32, minutes) };
     return result;
 }
 
@@ -119,13 +124,19 @@ fn timeComp(timeArr: [3][2]u8) [2]u32 {
 }
 
 // returns the time in minutes
-fn getTime(timeArr: [3][2]u8) f32 {
+fn getTime(timeArr: [3][2]u8) !f32 {
     const hours_and_mins = timeComp(timeArr);
+    const hours = hours_and_mins[0];
+    const mins = hours_and_mins[1];
 
-    var time = hours_and_mins[1];
-    time += hours_and_mins[0] * 60;
+    if (hours < 24 and mins < 60) {
+        var time = mins;
+        time += hours * 60;
 
-    return @intToFloat(f32, time);
+        return @intToFloat(f32, time);
+    } else {
+        return TimeError.InvalidTime;
+    }
 }
 
 fn no_use(something: []const u8) void {
