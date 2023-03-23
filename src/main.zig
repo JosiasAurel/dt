@@ -1,7 +1,6 @@
 const std = @import("std");
 
 const c = @cImport({
-    @cInclude("string.h");
     @cInclude("stdlib.h");
 });
 
@@ -14,15 +13,16 @@ pub fn main() !void {
     defer map.deinit();
 
     try map.put("WAST", 1);
-    try map.put("ET", 5);
-    try map.put("EST", -5);
-    try map.put("EDT", -4);
-    try map.put("IST", -5.5);
+    try map.put("ET", -4);
+    try map.put("PT", -7);
+    try map.put("CT", -5);
+    try map.put("AT", -4);
+    try map.put("IST", 5.5);
 
-    const sample_1 = "6:00";
+    const sample_1 = "15:31";
     // const sample_2 = "10".*;
 
-    const time_s = switchTimezones(map, sample_1, "WAST", "ET");
+    const time_s = switchTimezones(map, sample_1, "WAST", "AT");
     std.debug.print("{}:{}\n", .{ time_s[0], time_s[1] });
 }
 
@@ -56,22 +56,22 @@ fn getSubtractors(timeDiff: f32) [2]i32 {
     return result;
 }
 
+fn getTimeDiff(timeDiff: f32) f32 {
+    return timeDiff * 60;
+}
+
 fn switchTimezones(map: std.StringHashMap(f32), time: []const u8, original_tz: []const u8, target_tz: []const u8) [2]u32 {
-    const startDiff = map.get(original_tz);
-    const targetDiff = map.get(target_tz);
+    const gmtDiff = map.get(original_tz).? * 60;
+    const targetGmtDiff = map.get(target_tz).? * 60;
 
-    // first convert to GMT
-    const start_subtractors = getSubtractors(startDiff.?);
-    const time_nums = timeComp(split(time, ':'));
+    const gmtTime = getTime(split(time, ':')) - gmtDiff;
+    const targetTime = gmtTime + targetGmtDiff;
 
-    const gmt_time = [2]u32{ time_nums[0] + @intCast(u32, start_subtractors[0]), time_nums[1] + @intCast(u32, start_subtractors[1]) };
+    const hours = @floor(targetTime / 60);
+    const minutes = @rem(targetTime, 60);
 
-    // convert the gmt time to target time zone
-    const target_subtractors = getSubtractors(targetDiff.?);
-
-    const target_time = [2]u32{ gmt_time[0] + @intCast(u32, target_subtractors[0]), gmt_time[1] + @intCast(u32, target_subtractors[1]) };
-
-    return target_time;
+    const result = [2]u32{ @floatToInt(u32, hours), @floatToInt(u32, minutes) };
+    return result;
 }
 
 fn timeComp(timeArr: [3][2]u8) [2]u32 {
@@ -80,6 +80,16 @@ fn timeComp(timeArr: [3][2]u8) [2]u32 {
 
     const result = [2]u32{ @intCast(u32, hoursNum), @intCast(u32, minNum) };
     return result;
+}
+
+// returns the time in minutes
+fn getTime(timeArr: [3][2]u8) f32 {
+    const hours_and_mins = timeComp(timeArr);
+
+    var time = hours_and_mins[1];
+    time += hours_and_mins[0] * 60;
+
+    return @intToFloat(f32, time);
 }
 
 fn no_use(something: []const u8) void {
